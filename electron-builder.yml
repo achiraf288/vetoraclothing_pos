@@ -1,0 +1,38 @@
+appId: com.maison.pos
+productName: Vetora POS
+directories:
+  output: release
+  buildResources: build
+# better-sqlite3 13 ships N-API prebuilds inside the package, so no compile
+# step is needed at install time. `npm run rebuild:native` remains available
+# as a fallback if a platform ever lacks a prebuild.
+npmRebuild: false
+asar: true
+asarUnpack:
+  - node_modules/better-sqlite3/prebuilds/**
+files:
+  - package.json
+  - dist-electron/**
+  - renderer/dist/maison-pos-ui/browser/**
+  - "!**/*.map"
+  - "!node_modules/better-sqlite3/{deps,src,binding.gyp}"
+mac:
+  category: public.app-category.business
+  target:
+    - target: dmg
+      arch: [arm64, x64]
+  files:
+    - "!node_modules/better-sqlite3/prebuilds/{linux*,win32*}"
+win:
+  target:
+    - target: nsis
+      arch: [x64]
+  files:
+    - "!node_modules/better-sqlite3/prebuilds/{linux*,darwin*,win32-arm64*}"
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  # User data lives in the OS app-data folder and is never touched by the
+  # installer or uninstaller.
+  deleteAppDataOnUninstall: false

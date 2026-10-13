@@ -1,0 +1,42 @@
+{
+  "name": "maison-pos",
+  "productName": "Vetora POS",
+  "version": "0.1.0",
+  "description": "Offline desktop POS and inventory management for a clothing boutique",
+  "author": "Vetora POS",
+  "license": "UNLICENSED",
+  "private": true,
+  "main": "dist-electron/main/main.js",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "postinstall": "npm --prefix renderer install --legacy-peer-deps --no-audit --no-fund",
+    "build:electron": "tsc -p electron/tsconfig.json",
+    "build:renderer": "npm --prefix renderer run build",
+    "build": "npm run build:renderer && npm run build:electron",
+    "rebuild:native": "electron-rebuild -f -w better-sqlite3",
+    "dev": "npm run build:electron && concurrently -k \"npm --prefix renderer run start\" \"wait-on http://localhost:4200 && cross-env MAISON_DEV=1 electron .\"",
+    "start": "npm run build && electron .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "dist:mac": "npm run build && npm run rebuild:native && electron-builder --mac dmg --config electron-builder.yml",
+    "dist:win": "npm run build && npm run rebuild:native && electron-builder --win nsis --x64 --config electron-builder.yml"
+  },
+  "dependencies": {
+    "better-sqlite3": "^13.0.3",
+    "zod": "^4.6.6"
+  },
+  "devDependencies": {
+    "@electron/rebuild": "^4.2.1",
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^22.19.0",
+    "concurrently": "^9.2.0",
+    "cross-env": "^10.0.0",
+    "electron": "^44.7.0",
+    "electron-builder": "^26.15.3",
+    "typescript": "~5.9.2",
+    "vitest": "^4.0.8",
+    "wait-on": "^9.0.0"
+  }
+}

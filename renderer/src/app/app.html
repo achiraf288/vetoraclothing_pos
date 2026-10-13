@@ -1,0 +1,44 @@
+@if (!session.ready()) {
+  <div class="boot" role="status"><span class="serif">Vetora</span></div>
+} @else if (bare()) {
+  <router-outlet />
+} @else {
+  <div class="layout">
+    <aside class="side no-print" aria-label="Main navigation">
+      <div class="brand">
+        <span class="mark">V</span>
+        <div>
+          <div class="name serif">Vetora POS</div>
+          <div class="tag">{{ settings.settings().shopName }}</div>
+        </div>
+      </div>
+      <nav>
+        @for (g of groups(); track g.title) {
+          <div class="group">{{ g.title }}</div>
+          @for (i of g.items; track i.path) {
+            <a [routerLink]="i.path" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: i.path === '/purchases' || i.path === '/products' }" class="link">
+              <span class="ico" aria-hidden="true">{{ i.icon }}</span>{{ i.label }}
+            </a>
+          }
+        }
+      </nav>
+      <div class="foot">
+        <div class="status" title="All data is stored on this computer. No internet connection is used.">
+          <span class="dot"></span> Offline · local database
+        </div>
+        <div class="user">
+          <span class="avatar" aria-hidden="true">{{ initials() }}</span>
+          <div class="who">
+            <div class="n">{{ session.user()?.displayName }}</div>
+            <div class="r">{{ session.user()?.role === 'admin' ? 'Administrator' : 'Cashier' }}</div>
+          </div>
+          <button class="out" type="button" (click)="signOut()" aria-label="Sign out" title="Sign out">⎋</button>
+        </div>
+      </div>
+    </aside>
+    <main class="content" id="main">
+      <router-outlet />
+    </main>
+  </div>
+}
+<app-shell-overlays />

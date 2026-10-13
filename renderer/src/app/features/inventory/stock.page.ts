@@ -1,0 +1,22 @@
+import { Component, inject, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import type { StockRow } from '@shared/api';
+import { ApiService, messageOf } from '../../core/api.service';
+import { SettingsStore } from '../../core/settings.store';
+import { SessionService } from '../../core/session.service';
+import { PageHeaderComponent } from '../../ui/page-header.component';
+import { PaginationComponent } from '../../ui/pagination.component';
+
+@Component({selector:'app-stock-page',imports:[FormsModule,PageHeaderComponent,PaginationComponent],template:`
+ <app-page-header title="Stock" subtitle="Available stock by clothing size and colour. Confirmed orders reserve stock." />
+ @if(error()){<div class="notice notice-bad">{{error()}}</div>}<section class="card"><div class="toolbar"><input class="input" placeholder="Search product, SKU, barcode or variant" [(ngModel)]="search" (ngModelChange)="load(1)"/><label class="check"><input type="checkbox" [(ngModel)]="lowOnly" (ngModelChange)="load(1)"/>Low stock only</label></div>
+ @if(rows().length){<div class="table-wrap"><table class="table"><thead><tr><th>Product</th><th>SKU / Barcode</th><th>Size</th><th>Colour</th><th>Category</th><th>Available</th><th>Reorder level</th><th>Cost</th><th>Price</th><th></th></tr></thead><tbody>@for(s of rows();track s.variantId){<tr><td><b>{{s.productName}}</b></td><td>{{s.sku}}<div class="muted small">{{s.barcode}}</div></td><td>{{s.size}}</td><td>{{s.colour}}</td><td>{{s.categoryName}}</td><td><span [class.low]="s.stockQty-(s.reservedQty||0)<=s.reorderThreshold">{{s.stockQty-(s.reservedQty||0)}}</span><div class="muted small">{{s.reservedQty||0}} reserved of {{s.stockQty}}</div></td><td>{{s.reorderThreshold}}</td><td>{{settings.money(s.costMinor)}}</td><td>{{settings.money(s.priceMinor)}}</td><td>@if(session.can('inventory.adjust')){<button class="btn btn-sm" (click)="adjusting.set(s)">Adjust</button>}</td></tr>}</tbody></table></div><app-pagination [page]="page()" [pageSize]="25" [total]="total()" (pageChange)="load($event)"/>} @else{<div class="empty">No stock matches these filters.</div>}</section>
+ @if(adjusting();as s){<div class="scrim"><section class="card dialog"><h2>Adjust {{s.productName}}</h2><p>{{s.size}} {{s.colour}} · Current: {{s.stockQty}}</p><label>Adjustment type<select class="select" [(ngModel)]="kind"><option value="increase">Increase</option><option value="decrease">Decrease</option><option value="damaged">Damaged</option><option value="lost">Lost</option></select></label><label>Quantity<input class="input" type="number" min="1" [(ngModel)]="quantity"/></label><label>Reason<input class="input" [(ngModel)]="reason"/></label><div class="footer"><button class="btn" (click)="adjusting.set(null)">Cancel</button><button class="btn btn-primary" (click)="saveAdjust(s)">Save adjustment</button></div></section></div>}
+ `,styles:`.toolbar{display:flex;gap:10px;padding:12px;align-items:center}.toolbar .input{max-width:400px}.check{display:flex;gap:7px;align-items:center;font-size:12px}.low{color:#a04d27;font-weight:700}.small{font-size:11px}.empty{padding:40px;text-align:center;color:var(--ink-3)}.scrim{position:fixed;inset:0;background:#0007;display:grid;place-items:center;z-index:50}.dialog{width:min(420px,94vw);padding:20px;display:grid;gap:12px}.dialog h2{font:600 20px var(--font-serif)}.dialog label{display:grid;gap:5px}.footer{display:flex;justify-content:flex-end;gap:8px}`})
+export class StockPage {
+ private readonly api=inject(ApiService).api;protected readonly settings=inject(SettingsStore);protected readonly session=inject(SessionService);
+ protected readonly rows=signal<StockRow[]>([]);protected readonly total=signal(0);protected readonly page=signal(1);protected readonly adjusting=signal<StockRow|null>(null);protected readonly error=signal('');
+ protected search='';protected lowOnly=false;protected kind:'increase'|'decrease'|'damaged'|'lost'='increase';protected quantity=1;protected reason='';
+ constructor(){void this.load();}protected async load(page=1){try{const r=await this.api.inventory.listStock({search:this.search,lowOnly:this.lowOnly,page,pageSize:25});this.rows.set(r.items);this.total.set(r.total);this.page.set(r.page);}catch(e){this.error.set(messageOf(e));}}
+ protected async saveAdjust(s:StockRow){try{await this.api.inventory.adjust({variantId:s.variantId,kind:this.kind,quantity:Number(this.quantity),reason:this.reason});this.adjusting.set(null);this.reason='';await this.load(this.page());}catch(e){this.error.set(messageOf(e));}}
+}

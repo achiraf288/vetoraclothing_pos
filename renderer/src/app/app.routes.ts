@@ -1,0 +1,50 @@
+import { Routes } from '@angular/router';
+import { authGuard, landingGuard, permGuard } from './core/guards';
+
+export const routes: Routes = [
+  { path: 'login', loadComponent: () => import('./features/auth/login.page').then((m) => m.LoginPage) },
+  { path: 'setup', loadComponent: () => import('./features/auth/setup.page').then((m) => m.SetupPage) },
+  {
+    path: '',
+    canActivate: [authGuard],
+    children: [
+      { path: '', pathMatch: 'full', canActivate: [landingGuard], children: [] },
+      { path: 'forbidden', loadComponent: () => import('./features/auth/forbidden.page').then((m) => m.ForbiddenPage) },
+      { path: 'dashboard', canActivate: [permGuard], data: { perm: 'dashboard.read' }, loadComponent: () => import('./features/dashboard/dashboard.page').then((m) => m.DashboardPage) },
+      { path: 'pos', canActivate: [permGuard], data: { perm: 'sales.create' }, loadComponent: () => import('./features/pos/pos.page').then((m) => m.PosPage) },
+      { path: 'sales', canActivate: [permGuard], data: { perm: 'sales.read' }, loadComponent: () => import('./features/sales/sales.page').then((m) => m.SalesPage) },
+      { path: 'sales/:id', canActivate: [permGuard], data: { perm: 'sales.read' }, loadComponent: () => import('./features/sales/sale-detail.page').then((m) => m.SaleDetailPage) },
+      { path: 'orders', canActivate: [permGuard], data: { perm: 'sales.create' }, loadComponent: () => import('./features/orders/orders.page').then((m) => m.OrdersPage) },
+      { path: 'returns', canActivate: [permGuard], data: { perm: 'returns.create' }, loadComponent: () => import('./features/returns/returns.page').then((m) => m.ReturnsPage) },
+      { path: 'products', canActivate: [permGuard], data: { perm: 'catalog.read' }, loadComponent: () => import('./features/products/product-list.page').then((m) => m.ProductListPage) },
+      { path: 'products/new', canActivate: [permGuard], data: { perm: 'catalog.write' }, loadComponent: () => import('./features/products/product-detail.page').then((m) => m.ProductDetailPage) },
+      { path: 'products/:id', canActivate: [permGuard], data: { perm: 'catalog.read' }, loadComponent: () => import('./features/products/product-detail.page').then((m) => m.ProductDetailPage) },
+      { path: 'inventory/stock', canActivate: [permGuard], data: { perm: 'inventory.read' }, loadComponent: () => import('./features/inventory/stock.page').then((m) => m.StockPage) },
+      { path: 'inventory/movements', canActivate: [permGuard], data: { perm: 'inventory.read' }, loadComponent: () => import('./features/inventory/movements.page').then((m) => m.MovementsPage) },
+      { path: 'inventory/valuation', canActivate: [permGuard], data: { perm: 'inventory.adjust' }, loadComponent: () => import('./features/inventory/valuation.page').then((m) => m.ValuationPage) },
+      { path: 'suppliers', canActivate: [permGuard], data: { perm: 'purchases.manage' }, loadComponent: () => import('./features/suppliers/suppliers.page').then((m) => m.SuppliersPage) },
+      { path: 'purchases', canActivate: [permGuard], data: { perm: 'purchases.manage' }, loadComponent: () => import('./features/purchases/purchase-list.page').then((m) => m.PurchaseListPage) },
+      { path: 'purchases/returns', canActivate: [permGuard], data: { perm: 'purchases.manage' }, loadComponent: () => import('./features/purchases/supplier-returns.page').then((m) => m.SupplierReturnsPage) },
+      { path: 'purchases/new', canActivate: [permGuard], data: { perm: 'purchases.manage' }, loadComponent: () => import('./features/purchases/purchase-edit.page').then((m) => m.PurchaseEditPage) },
+      { path: 'purchases/:id', canActivate: [permGuard], data: { perm: 'purchases.manage' }, loadComponent: () => import('./features/purchases/purchase-edit.page').then((m) => m.PurchaseEditPage) },
+      { path: 'expenses', canActivate: [permGuard], data: { perm: 'expenses.manage' }, loadComponent: () => import('./features/expenses/expenses.page').then((m) => m.ExpensesPage) },
+      { path: 'reports', canActivate: [permGuard], data: { perm: 'reports.read' }, loadComponent: () => import('./features/reports/reports.page').then((m) => m.ReportsPage) },
+      {
+        path: 'settings',
+        canActivate: [permGuard],
+        data: { perm: 'settings.read' },
+        loadComponent: () => import('./features/settings/settings.page').then((m) => m.SettingsPage),
+        children: [
+          { path: '', pathMatch: 'full', redirectTo: 'general' },
+          { path: 'general', loadComponent: () => import('./features/settings/general.page').then((m) => m.GeneralSettingsPage) },
+          { path: 'payments', loadComponent: () => import('./features/settings/payments.page').then((m) => m.PaymentSettingsPage) },
+          { path: 'users', loadComponent: () => import('./features/settings/users.page').then((m) => m.UsersPage) },
+          { path: 'backup', loadComponent: () => import('./features/settings/backup.page').then((m) => m.BackupPage) },
+          { path: 'audit', loadComponent: () => import('./features/settings/audit.page').then((m) => m.AuditPage) },
+          { path: 'about', loadComponent: () => import('./features/settings/about.page').then((m) => m.AboutPage) },
+        ],
+      },
+    ],
+  },
+  { path: '**', redirectTo: '' },
+];

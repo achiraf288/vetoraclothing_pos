@@ -1,0 +1,7 @@
+import { Component, inject, signal } from '@angular/core';
+import type { AppInfo } from '@shared/api';
+import { ApiService, messageOf } from '../../core/api.service';
+import { PageHeaderComponent } from '../../ui/page-header.component';
+
+@Component({selector:'app-about-page',imports:[PageHeaderComponent],template:`<app-page-header title="About Vetora POS" subtitle="Offline point-of-sale and clothing inventory management." />@if(error()){<div class="notice notice-bad">{{error()}}</div>}@if(info();as i){<section class="card info"><h2>Vetora POS</h2><p>Version {{i.version}} · {{i.platform}} {{i.arch}}</p><dl><dt>Database schema</dt><dd>{{i.schemaVersion}}</dd><dt>Electron</dt><dd>{{i.electron}}</dd><dt>SQLite</dt><dd>{{i.sqlite}}</dd><dt>Database file</dt><dd>{{i.databasePath}}</dd><dt>Backups</dt><dd>{{i.backupDirectory}}</dd><dt>Logs</dt><dd>{{i.logPath}}</dd></dl>@if(i.upgradedFromVersion!==null){<p class="notice notice-good">Data upgraded from schema {{i.upgradedFromVersion}}.</p>}</section>}`,styles:`.info{padding:20px}.info h2{font:600 24px var(--font-serif)}dl{display:grid;grid-template-columns:160px 1fr;gap:9px;margin-top:20px;overflow-wrap:anywhere}dt{color:var(--ink-3)}dd{margin:0}`})
+export class AboutPage {private readonly api=inject(ApiService).api;protected readonly info=signal<AppInfo|null>(null);protected readonly error=signal('');constructor(){void this.api.app.getInfo().then(x=>this.info.set(x)).catch(e=>this.error.set(messageOf(e)));}}

@@ -1,0 +1,26 @@
+import { Component, inject, signal } from '@angular/core';
+import { DatePipe } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import type { PosVariant, SupplierDto, SupplierReturnDto } from '@shared/api';
+import { ApiService, messageOf } from '../../core/api.service';
+import { SettingsStore } from '../../core/settings.store';
+import { today } from '../../core/dates';
+import { PageHeaderComponent } from '../../ui/page-header.component';
+
+@Component({selector:'app-supplier-returns-page',imports:[FormsModule,DatePipe,PageHeaderComponent],template:`
+ <app-page-header title="Supplier returns" subtitle="Return damaged or excess purchased stock to a supplier."><div actions><button class="btn btn-primary" (click)="showForm.set(!showForm())">{{showForm()?'Close':'Create return'}}</button></div></app-page-header>@if(error()){<div class="notice notice-bad">{{error()}}</div>}
+ @if(showForm()){<section class="card form"><div class="fields"><label>Supplier<select class="select" [(ngModel)]="supplierId"><option [ngValue]="0">Choose supplier</option>@for(s of suppliers();track s.id){<option [ngValue]="s.id">{{s.name}}</option>}</select></label><label>Return date<input class="input" type="date" [(ngModel)]="date"/></label><label class="wide">Reason<input class="input" [(ngModel)]="reason"/></label><label class="wide">Find variant<input class="input" placeholder="Product, SKU or barcode" [ngModel]="query()" (ngModelChange)="search($event)" /></label></div>@if(matches().length){<div class="matches">@for(p of matches();track p.variantId){<button class="match" (click)="add(p)">{{p.productName}} · {{p.size}} {{p.colour}} · {{p.stockQty}} in stock · {{settings.money(p.priceMinor)}}</button>}</div>}
+ @if(items().length){<div class="lines">@for(i of items();track i.variantId){<div><span>{{i.productName}} · {{i.size}} {{i.colour}}</span><span>Return <input class="input qty" type="number" min="1" [max]="i.stockQty" [(ngModel)]="i.quantity" /> units</span><button class="btn btn-sm" (click)="remove(i.variantId)">Remove</button></div>}</div>}
+ <button class="btn btn-primary" [disabled]="!items().length" (click)="create()">Record supplier return</button></section>}
+ <section class="card">@if(rows().length){<div class="table-wrap"><table class="table"><thead><tr><th>Return</th><th>Date</th><th>Supplier</th><th>Reason</th><th>Lines</th><th class="num">Cost value</th></tr></thead><tbody>@for(r of rows();track r.id){<tr><td>{{r.returnNo}}</td><td>{{r.returnDate|date:'mediumDate'}}</td><td>{{r.supplierName}}</td><td>{{r.reason}}</td><td>{{r.itemCount}}</td><td class="num">{{settings.money(r.totalCostMinor)}}</td></tr>}</tbody></table></div>}@else{<div class="empty">No supplier returns yet.</div>}</section>
+`,styles:`.form{padding:16px;margin-bottom:16px}.fields{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.fields label{display:grid;gap:4px;font-size:12px}.wide{grid-column:span 2}.matches{display:grid;max-height:160px;overflow:auto;border:1px solid var(--beige);margin:10px 0}.match{padding:9px;text-align:left;border:0;border-bottom:1px solid var(--beige);background:white;cursor:pointer}.lines>div{display:flex;align-items:center;justify-content:space-between;padding:9px;border-bottom:1px solid var(--beige);gap:8px}.qty{width:75px;display:inline-block}.empty{padding:35px;text-align:center;color:var(--ink-3)}.num{text-align:right}@media(max-width:650px){.fields{grid-template-columns:1fr}.wide{grid-column:auto}}`})
+export class SupplierReturnsPage {
+ private readonly api=inject(ApiService).api;protected readonly settings=inject(SettingsStore);protected readonly suppliers=signal<SupplierDto[]>([]);protected readonly rows=signal<SupplierReturnDto[]>([]);protected readonly matches=signal<PosVariant[]>([]);protected readonly items=signal<Array<PosVariant&{quantity:number}>>([]);protected readonly error=signal('');protected readonly showForm=signal(false);protected readonly query=signal('');
+ protected supplierId=0;protected date=today();protected reason='';
+ constructor(){void this.init();}
+ private async init(){try{const [s,r]=await Promise.all([this.api.suppliers.list(),this.api.purchases.listSupplierReturns({pageSize:100})]);this.suppliers.set(s);this.rows.set(r.items);}catch(e){this.error.set(messageOf(e));}}
+ protected async search(v:string){this.query.set(v);if(!v.trim()){this.matches.set([]);return;}try{this.matches.set(await this.api.sales.lookup({query:v}));}catch(e){this.error.set(messageOf(e));}}
+ protected add(p:PosVariant){this.items.update(rows=>{const found=rows.find(x=>x.variantId===p.variantId);return found?rows.map(x=>x.variantId===p.variantId?{...x,quantity:Math.min(p.stockQty,x.quantity+1)}:x):[...rows,{...p,quantity:1}];});this.matches.set([]);this.query.set('');}
+ protected remove(id:number){this.items.update(rows=>rows.filter(x=>x.variantId!==id));}
+ protected async create(){try{const r=await this.api.purchases.createSupplierReturn({supplierId:Number(this.supplierId),reason:this.reason,returnDate:this.date,items:this.items().map(x=>({variantId:x.variantId,quantity:Number(x.quantity)}))});this.rows.update(rows=>[r,...rows]);this.items.set([]);this.reason='';this.showForm.set(false);}catch(e){this.error.set(messageOf(e));}}
+}
